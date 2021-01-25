@@ -1,0 +1,63 @@
+variables:
+  IMAGE_TAG: $CI_COMMIT_BRANCH-$CI_COMMIT_SHORT_SHA	 
+
+
+stages:
+  - build
+  - test
+  - deploy
+
+cache:
+  key:
+    files:
+      - composer.lock
+  paths:
+    - vendor/
+
+image: busybox:latest
+
+before_script:
+  - echo "Before script section"
+  - echo "For example you might run an update here or install a build dependency"
+  - echo "Or perhaps you might print out some debugging details"
+
+after_script:
+  - echo "After script section"
+  - echo "For example you might do some cleanup here"
+
+build:
+  stage: build
+  script:
+    - mkdir vendor/
+    - echo "build" > vendor/hello.txt
+
+docker build:
+  image: docker:latest
+  stage: build
+  services: 
+    - docker:dind
+  script:
+    - docker login -u $GITLAB_CI_USER -p $GITLAB_CI_PASSWORD $CI_REGISTRY
+    - echo $CI_REGISTRY_USER $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$IMAGE_TAG .
+    - docker push $CI_REGISTRY_IMAGE:$IMAGE_TAG
+
+test1:
+  stage: test
+  script:
+    - echo "Do a test here"
+    - cat vendor/hello.txt    
+  except:
+    - /^404-.*$/
+    
+test2:
+  stage: test
+  script:
+    - echo "Do another parallel test here"
+  except:
+    - /^404-.*$/    
+
+deploy1:
+  stage: deploy
+  script:
+    - echo "Do your deploy here"
